@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Show do Milhão — Present Perfect</title>
+<style>
+  :root{
+    --bg1:#071028;
+    --bg2:#0b1733;
+    --gold1:#ffd166;
+    --gold2:#f7b733;
+    --accent:#00f5d4;
+    --panel: rgba(255,255,255,0.06);
+    --glass: rgba(255,255,255,0.04);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    color:#fff;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  header{
+    padding:18px 20px;
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+  }
+  header h1{margin:0;font-size:1.1rem;letter-spacing:0.6px}
+  .meta{display:flex;gap:12px;align-items:center}
+
+  .container{
+    max-width:980px;
+    margin:28px auto;
+    padding:18px;
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:18px;
+  }
+
+  /* Left panel - quiz */
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border-radius:12px;
+    padding:20px;
+    box-shadow: 0 6px 20px rgba(2,6,23,0.6);
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .question-area .qtop{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .q-number{opacity:0.85;font-size:0.95rem}
+  .question{
+    font-size:1.3rem;
+    margin:14px 0 8px;
+    line-height:1.35;
+    min-height:54px;
+  }
+
+  .options{
+    display:grid;
+    gap:10px;
+    margin-top:10px;
+  }
+  .opt-btn{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 14px;
+    background:var(--panel);
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.04);
+    color:#fff;
+    cursor:pointer;
+    transition: transform .08s ease, background .18s;
+    font-size:1rem;
+  }
+  .opt-btn:hover{transform:translateY(-3px)}
+  .opt-btn.disabled{opacity:0.45;pointer-events:none;transform:none}
+  .opt-btn.correct{background: linear-gradient(90deg,#003b00,#006400); color:#dfffe3; border-color: rgba(0,200,0,0.25)}
+  .opt-btn.wrong{background: linear-gradient(90deg,#3b0000,#640000); color:#ffdede; border-color: rgba(200,0,0,0.25)}
+
+  .percent-badge{
+    background: rgba(255,255,255,0.06);
+    padding:6px 8px;border-radius:6px;font-size:0.9rem;opacity:0.95;
+    margin-left:12px;min-width:54px;text-align:right;
+  }
+
+  /* Right panel - info, gold bar, lifelines */
+  .sidebar{ display:flex;flex-direction:column; gap:14px;}
+  .score-box{padding:12px;border-radius:10px;background:var(--glass); display:flex;flex-direction:column; gap:8px}
+  .score-box .score-row{display:flex;justify-content:space-between;align-items:center}
+  .progress-wrap{background:rgba(255,255,255,0.06);border-radius:12px;padding:8px}
+  .gold-bar{
+    height:18px;border-radius:10px;background:linear-gradient(90deg,#33220a,#2a1706);
+    position:relative;overflow:hidden;border:1px solid rgba(0,0,0,0.35)
+  }
+  .gold-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--gold1),var(--gold2));
+    box-shadow: 0 4px 18px rgba(247,183,51,0.35);
+    transition: width 700ms cubic-bezier(.2,.9,.2,1);
+    display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-weight:700;color:#2a1a00;
+  }
+  .milestone{font-size:0.8rem;opacity:0.9}
+
+  .lifelines{
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .life-btn{
+    background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+    cursor:pointer; display:flex;gap:10px;align-items:center;font-weight:600;
+  }
+  .life-btn.used{opacity:0.45;pointer-events:none}
+
+  .controls{display:flex;gap:10px; margin-top:8px}
+  .primary{
+    background:linear-gradient(90deg,#00b4d8,#0077ff); color:#fff; padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;
+  }
+  .secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:#fff;cursor:pointer}
+
+  .feedback{margin-top:12px;font-size:1rem;min-height:34px; display:flex;align-items:center;gap:10px}
+  .hint{opacity:0.9;font-size:0.95rem}
+
+  footer{margin-top:22px;text-align:center;color:rgba(255,255,255,0.6);font-size:0.9rem}
+
+  /* confetti canvas */
+  #confetti { position: fixed; pointer-events:none; left:0; top:0; width:100%; height:100%; z-index:9999; }
+
+  /* responsive */
+  @media(max-width:980px){
+    .container{grid-template-columns:1fr; padding:12px}
+    .sidebar{order:2}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Show do Milhão — Present Perfect</h1>
+  <div class="meta">
+    <div style="font-size:0.95rem;opacity:0.9">30 perguntas • uma sessão</div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="card question-area" id="leftPanel">
+    <div class="qtop">
+      <div class="q-number" id="qNumber">Question 1 / 30</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div id="timer" style="opacity:0.95;font-size:0.95rem">Time: 00:30</div>
+        <div style="font-weight:700" id="scoreText">Score: 0</div>
+      </div>
+    </div>
+
+    <div class="question" id="question">Loading...</div>
+
+    <div class="options" id="options">
+      <!-- option buttons injected here -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls" style="margin-top:14px">
+      <button id="nextBtn" class="primary" style="display:none">Next Question</button>
+      <button id="restartBtn" class="secondary" style="display:none">Restart Game</button>
+    </div>
+
+    <footer>
+      Dicas disponíveis: <span id="lifeStatus">50/50, Pular, Chance</span>
+    </footer>
+  </section>
+
+  <aside class="sidebar">
+    <div class="card score-box">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="opacity:0.9;">Placar</div>
+          <div style="font-size:1.4rem;font-weight:800" id="scoreBig">0</div>
+        </div>
+        <div style="text-align:right">
+          <div style="opacity:0.8">Perguntas respondidas</div>
+          <div style="font-weight:700" id="answered">0 / 30</div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px">
+        <div class="progress-wrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div class="milestone">Progresso</div>
+            <div style="font-size:0.9rem;opacity:0.9" id="percentText">0%</div>
+          </div>
+          <div class="gold-bar" aria-hidden="true">
+            <div class="gold-fill" id="goldFill">0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="margin-bottom:8px;font-weight:800">Lifelines</div>
+      <div class="lifelines">
+        <button id="btn5050" class="life-btn">50/50</button>
+        <button id="btnSkip" class="life-btn">Pular</button>
+        <button id="btnChance" class="life-btn">Chance</button>
+      </div>
+      <div style="margin-top:10px;color:rgba(255,255,255,0.85);font-size:0.95rem">
+        Use cada lifeline <strong>uma vez</strong> por jogo. A opção <em>Chance</em> mostra uma porcentagem provável (sugestão).
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:800;margin-bottom:8px">Dicas rápidas</div>
+      <ul style="margin:0 0 0 18px;padding:0;opacity:0.92">
+        <li>Present Perfect: have/has + past participle (eaten, seen, been).</li>
+        <li>Palavras comuns: <em>ever</em>, <em>yet</em>, <em>already</em>, <em>just</em>, <em>for</em>, <em>since</em>.</li>
+      </ul>
+    </div>
+  </aside>
+</main>
+
+<canvas id="confetti"></canvas>
+
+<script>
+/* -----------------------------
+   Timer configuration (seconds)
+--------------------------------*/
+const TIMER_SECONDS = 30; // altere aqui para mudar duração do temporizador por pergunta
+
+/* -----------------------------
+   Questions (30) - Present Perfect
+--------------------------------*/
+const questions = [
+  { q: "Which sentence is correct in Present Perfect?", o: ["I have eat breakfast.", "I have eaten breakfast.", "I has eaten breakfast.", "I have eating breakfast."], a: 1 },
+  { q: "Complete: She ____ (never/be) to London.", o: ["has never been", "have never been", "has never be", "have never be"], a: 0 },
+  { q: "Choose the correct question:", o: ["Have you ever been to Paris?", "Did you ever been to Paris?", "Have you ever be to Paris?", "Has you ever been to Paris?"], a: 0 },
+  { q: "Which is NOT Present Perfect?", o: ["I have done my homework.", "She has gone to the store.", "They went to the park.", "We have seen that movie."], a: 2 },
+  { q: "Complete: We ____ (live) here for ten years.", o: ["have lived", "has lived", "have lives", "lived"], a: 0 },
+  { q: "Choose the correct negative form:", o: ["I haven’t finished my work.", "I haven’t finish my work.", "I hasn’t finished my work.", "I haven’t finishes my work."], a: 0 },
+  { q: "Which adverb is common in Present Perfect?", o: ["yesterday", "last week", "ever", "in 2010"], a: 2 },
+  { q: "Complete: They ____ (not/see) that movie yet.", o: ["haven’t seen", "haven’t saw", "hasn’t seen", "not seen"], a: 0 },
+  { q: "Choose the correct sentence:", o: ["He has wrote a book.", "He have written a book.", "He has written a book.", "He has write a book."], a: 2 },
+  { q: "Which sentence is wrong?", o: ["We have already finished.", "She has never traveled abroad.", "I have just saw that movie.", "Have you ever tried sushi?"], a: 2 },
+  { q: "Complete: I ____ (not/finish) my homework yet.", o: ["haven’t finished", "haven’t finish", "hasn’t finished", "not finished"], a: 0 },
+  { q: "Choose the correct question form:", o: ["Has she ever visited Rome?", "She has ever visited Rome?", "Did she ever visited Rome?", "Has she ever visits Rome?"], a: 0 },
+  { q: "Which is Present Perfect?", o: ["I visited Spain last year.", "I have visited Spain.", "I was visiting Spain.", "I visit Spain."], a: 1 },
+  { q: "Complete: He ____ (never/play) the guitar.", o: ["has never played", "have never played", "has never play", "have never plays"], a: 0 },
+  { q: "Find the incorrect one:", o: ["We have just eaten.", "I have already done it.", "They have saw the film.", "She has been there."], a: 2 },
+  { q: "Complete: How long ____ (you/live) here?", o: ["have you lived", "has you lived", "have you live", "have you lives"], a: 0 },
+  { q: "Choose the correct option:", o: ["I has finished my book.", "I have finished my book.", "I have finishes my book.", "I finished have my book."], a: 1 },
+  { q: "Which adverb fits best: 'I have ____ been to Canada.'", o: ["never", "yesterday", "last month", "in 2015"], a: 0 },
+  { q: "Complete: She ____ (just/arrive).", o: ["has just arrived", "have just arrived", "has just arrive", "have just arrives"], a: 0 },
+  { q: "Which one is wrong?", o: ["They have worked here since 2010.", "He has been my friend for years.", "We have eat breakfast today.", "I have already called him."], a: 2 },
+  { q: "Complete: I ____ (not/see) her lately.", o: ["haven’t seen", "hasn’t seen", "haven’t saw", "not seen"], a: 0 },
+  { q: "Which is correct?", o: ["Have you done your homework yet?", "Did you done your homework yet?", "Have you did your homework yet?", "You have did your homework yet?"], a: 0 },
+  { q: "Complete: They ____ (visit) us many times.", o: ["have visited", "has visited", "have visits", "visited"], a: 0 },
+  { q: "Choose the correct sentence:", o: ["I have never see that movie.", "I have never seen that movie.", "I never have seen that movie.", "I never seen that movie."], a: 1 },
+  { q: "Which is Present Perfect?", o: ["I have just finished lunch.", "I just finished lunch.", "I was finishing lunch.", "I will finish lunch."], a: 0 },
+  { q: "Complete: He ____ (work) here for five years.", o: ["has worked", "have worked", "has work", "have works"], a: 0 },
+  { q: "Find the wrong one:", o: ["We have been friends for ages.", "I have known her since school.", "She has studied for the test.", "They have went to the party."], a: 3 },
+  { q: "Which adverb is NOT common in Present Perfect?", o: ["yet", "already", "just", "last year"], a: 3 },
+  { q: "Complete: Have you ____ (ever/try) sushi?", o: ["ever tried", "ever try", "ever tries", "ever trying"], a: 0 },
+  { q: "Choose the correct option:", o: ["She has just left.", "She have just left.", "She has just leave.", "She have just leave."], a: 0 }
+];
+
+let score = 0;
+let currentQuestionIndex = -1;
+let usedQuestions = [];
+let answeredCount = 0;
+
+// lifelines usage trackers
+let used5050 = false, usedSkip = false, usedChance = false;
+
+const qNumberEl = document.getElementById('qNumber');
+const questionEl = document.getElementById('question');
+const optionsEl = document.getElementById('options');
+const feedbackEl = document.getElementById('feedback');
+const scoreEl = document.getElementById('scoreText');
+const scoreBigEl = document.getElementById('scoreBig');
+const answeredEl = document.getElementById('answered');
+const percentText = document.getElementById('percentText');
+const goldFill = document.getElementById('goldFill');
+const nextBtn = document.getElementById('nextBtn');
+const restartBtn = document.getElementById('restartBtn');
+
+const btn5050 = document.getElementById('btn5050');
+const btnSkip = document.getElementById('btnSkip');
+const btnChance = document.getElementById('btnChance');
+const lifeStatus = document.getElementById('lifeStatus');
+
+const timerEl = document.getElementById('timer');
+
+const confettiCanvas = document.getElementById('confetti');
+const ctx = confettiCanvas.getContext('2d');
+
+/* -----------------------------
+   Sound generator using Web Audio API
+--------------------------------*/
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioCtx();
+
+function playTone(freq, duration = 0.12, type='sine', gain=0.08) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = gain;
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  o.start();
+  o.stop(audioCtx.currentTime + duration);
+}
+
+function playClick(){ playTone(1000,0.06,'sine',0.05); }
+function playCorrect(){
+  playTone(880,0.09,'sine',0.08);
+  setTimeout(()=>playTone(1100,0.09,'sine',0.08),90);
+}
+function playWrong(){
+  playTone(260,0.18,'sawtooth',0.12);
+}
+function playNext(){ playTone(1200,0.06,'triangle',0.05); }
+
+/* -----------------------------
+   Utilities
+--------------------------------*/
+function shuffle(array){
+  let a = array.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function clamp(n,min,max){ return Math.max(min,Math.min(max,n)); }
+
+/* -----------------------------
+   Timer logic
+--------------------------------*/
+let timerInterval = null;
+let remainingSeconds = TIMER_SECONDS;
+
+function formatTime(s){
+  const mm = String(Math.floor(s / 60)).padStart(2,'0');
+  const ss = String(s % 60).padStart(2,'0');
+  return `${mm}:${ss}`;
+}
+
+function startTimer(){
+  clearTimer();
+  remainingSeconds = TIMER_SECONDS;
+  timerEl.textContent = `Time: ${formatTime(remainingSeconds)}`;
+  timerInterval = setInterval(()=>{
+    remainingSeconds--;
+    if(remainingSeconds <= 0){
+      timerEl.textContent = `Time: 00:00`;
+      clearTimer();
+      // treat as wrong answer due to timeout
+      handleTimeout();
+      return;
+    }
+    timerEl.textContent = `Time: ${formatTime(remainingSeconds)}`;
+  }, 1000);
+}
+
+function clearTimer(){
+  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function stopTimer(){
+  clearTimer();
+  timerEl.textContent = `Time: ${formatTime(remainingSeconds)}`;
+}
+
+/* -----------------------------
+   Question flow
+--------------------------------*/
+function getRandomQuestion(){
+  feedbackEl.textContent = '';
+  nextBtn.style.display = 'none';
+  restartBtn.style.display = 'none';
+  // end game if all used
+  if(usedQuestions.length === questions.length){
+    endGame();
+    return;
+  }
+  let index;
+  do {
+    index = Math.floor(Math.random() * questions.length);
+  } while (usedQuestions.includes(index));
+  usedQuestions.push(index);
+  currentQuestionIndex = index;
+  displayQuestion(questions[index]);
+  updateSidebar();
+}
+
+function displayQuestion(qObj){
+  qNumberEl.textContent = `Question ${usedQuestions.length} / ${questions.length}`;
+  questionEl.textContent = qObj.q;
+  optionsEl.innerHTML = '';
+  // create option buttons
+  qObj.o.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.innerHTML = `<span class="opt-text">${opt}</span><span class="percent-badge" style="display:none" data-opt="${i}"></span>`;
+    btn.onclick = () => onChoose(i, btn);
+    btn.dataset.index = i;
+    optionsEl.appendChild(btn);
+  });
+  // reset lifeline effect appearance
+  clearPercentBadges();
+  // ensure lifelines disabled if already used
+  btn5050.classList.toggle('used', used5050);
+  btnSkip.classList.toggle('used', usedSkip);
+  btnChance.classList.toggle('used', usedChance);
+  updateLifeStatusText();
+
+  // start timer for the question
+  startTimer();
+}
+
+function onChoose(chosenIndex, btn){
+  // prevent multiple clicks
+  if(btn.classList.contains('disabled') || nextBtn.style.display === 'block') return;
+  // stop timer immediately
+  stopTimer();
+  // freeze interactions
+  disableAllOptions();
+  playClick();
+  const correctIndex = questions[currentQuestionIndex].a;
+  const allBtns = Array.from(optionsEl.querySelectorAll('.opt-btn'));
+
+  if(chosenIndex === correctIndex){
+    btn.classList.add('correct');
+    feedbackEl.innerHTML = `<span style="color:#dfffe3;font-weight:700">✅ Correct!</span>`;
+    playCorrect();
+    score++;
+    scoreEl.textContent = `Score: ${score}`;
+    scoreBigEl.textContent = score;
+  } else {
+    btn.classList.add('wrong');
+    // highlight correct
+    const correctBtn = allBtns.find(b => Number(b.dataset.index) === correctIndex);
+    if (correctBtn) correctBtn.classList.add('correct');
+    const correctText = questions[currentQuestionIndex].o[correctIndex];
+    feedbackEl.innerHTML = `<span style="color:#ffdede;font-weight:700">❌ Wrong!</span> Correct: <strong>${correctText}</strong>`;
+    playWrong();
+  }
+
+  answeredCount++;
+  answeredEl.textContent = `${answeredCount} / ${questions.length}`;
+  updateProgress();
+  // show next or finish
+  if(usedQuestions.length === questions.length){
+    nextBtn.style.display = 'none';
+    restartBtn.style.display = 'inline-block';
+    setTimeout(()=> endGame(), 800);
+  } else {
+    nextBtn.style.display = 'inline-block';
+    restartBtn.style.display = 'none';
+  }
+}
+
+/* handle timeout (time ran out) */
+function handleTimeout(){
+  // disable options
+  const btns = Array.from(optionsEl.querySelectorAll('.opt-btn'));
+  btns.forEach(b => b.classList.add('disabled'));
+  // highlight correct
+  const correctIndex = questions[currentQuestionIndex].a;
+  const correctBtn = btns.find(b => Number(b.dataset.index) === correctIndex);
+  if(correctBtn) correctBtn.classList.add('correct');
+  feedbackEl.innerHTML = `<span style="color:#ffdede;font-weight:700">⏰ Time's up!</span> Correct: <strong>${questions[currentQuestionIndex].o[correctIndex]}</strong>`;
+  playWrong();
+  answeredCount++;
+  answeredEl.textContent = `${answeredCount} / ${questions.length}`;
+  updateProgress();
+  // show next or finish
+  if(usedQuestions.length === questions.length){
+    nextBtn.style.display = 'none';
+    restartBtn.style.display = 'inline-block';
+    setTimeout(()=> endGame(), 800);
+  } else {
+    nextBtn.style.display = 'inline-block';
+    restartBtn.style.display = 'none';
+  }
+}
+
+/* disable option clicks after answer chosen */
+function disableAllOptions(){
+  const btns = optionsEl.querySelectorAll('.opt-btn');
+  btns.forEach(b => b.classList.add('disabled'));
+}
+
+/* -----------------------------
+   Lifelines
+--------------------------------*/
+btn5050.addEventListener('click', () => {
+  if(used5050) return;
+  used5050 = true;
+  btn5050.classList.add('used');
+  playNext();
+  apply5050();
+  updateLifeStatusText();
+});
+
+btnSkip.addEventListener('click', () => {
+  if(usedSkip) return;
+  usedSkip = true;
+  btnSkip.classList.add('used');
+  playNext();
+  // stop timer and go to next
+  clearTimer();
+  if(usedQuestions.length === questions.length){
+    endGame();
+  } else {
+    getRandomQuestion();
+  }
+  updateLifeStatusText();
+});
+
+btnChance.addEventListener('click', () => {
+  if(usedChance) return;
+  usedChance = true;
+  btnChance.classList.add('used');
+  playNext();
+  applyChance();
+  updateLifeStatusText();
+});
+
+function apply5050(){
+  // hide two incorrect options (disable visually)
+  const correctIdx = questions[currentQuestionIndex].a;
+  const btns = Array.from(optionsEl.querySelectorAll('.opt-btn'));
+  const incorrect = btns.filter(b => Number(b.dataset.index) !== correctIdx);
+  // shuffle and take two to remove
+  const toRemove = shuffle(incorrect).slice(0,2);
+  toRemove.forEach(b=>{
+    b.classList.add('disabled');
+    b.style.opacity = '0.25';
+    b.style.transform = 'none';
+  });
+  feedbackEl.textContent = '50/50 used — duas opções removidas.';
+}
+
+function applyChance(){
+  // Show percentages next to all options — bias toward correct one
+  const correctIdx = questions[currentQuestionIndex].a;
+  let correctPct = 45 + Math.floor(Math.random()*31); // 45-75
+  correctPct = clamp(correctPct,45,75);
+  let remaining = 100 - correctPct;
+  const others = [];
+  const otherCount = questions[currentQuestionIndex].o.length - 1;
+  for(let i=0;i<otherCount;i++){
+    let val = (i === otherCount-1) ? remaining : Math.floor(Math.random()*(remaining+1));
+    others.push(val);
+    remaining -= val;
+  }
+  const badges = optionsEl.querySelectorAll('.percent-badge');
+  badges.forEach(b => {
+    const idx = Number(b.dataset.opt);
+    if(idx === correctIdx){
+      b.style.display = 'inline-block';
+      b.textContent = correctPct + '%';
+      b.title = 'Sugestão: probabilidade maior';
+    } else {
+      const v = others.shift() ?? 0;
+      b.style.display = 'inline-block';
+      b.textContent = v + '%';
+      b.title = 'Sugestão: probabilidade menor';
+    }
+  });
+  feedbackEl.textContent = 'Chance usada — estas porcentagens são uma sugestão (não garantem).';
+}
+
+/* -----------------------------
+   Progress and UI updates
+--------------------------------*/
+function updateProgress(){
+  const percent = Math.round((answeredCount / questions.length) * 100);
+  percentText.textContent = `${percent}%`;
+  goldFill.style.width = `${percent}%`;
+  goldFill.textContent = `${percent}%`;
+}
+
+function updateSidebar(){
+  scoreEl.textContent = `Score: ${score}`;
+  scoreBigEl.textContent = score;
+  answeredEl.textContent = `${answeredCount} / ${questions.length}`;
+  const percent = Math.round((answeredCount / questions.length) * 100);
+  percentText.textContent = `${percent}%`;
+  goldFill.style.width = `${percent}%`;
+  goldFill.textContent = `${percent}%`;
+}
+
+/* update lifeline status text */
+function updateLifeStatusText(){
+  const parts = [];
+  parts.push(used5050 ? '50/50 (used)' : '50/50');
+  parts.push(usedSkip ? 'Pular (used)' : 'Pular');
+  parts.push(usedChance ? 'Chance (used)' : 'Chance');
+  lifeStatus.textContent = parts.join(' • ');
+}
+
+/* clear percent badges */
+function clearPercentBadges(){
+  const badges = optionsEl.querySelectorAll('.percent-badge');
+  badges.forEach(b => { b.style.display = 'none'; b.textContent = ''; });
+}
+
+/* -----------------------------
+   Next / Restart
+--------------------------------*/
+nextBtn.addEventListener('click', ()=>{
+  playNext();
+  // reset some UI states
+  feedbackEl.textContent = '';
+  getRandomQuestion();
+});
+
+restartBtn.addEventListener('click', ()=>{
+  resetGame();
+});
+
+/* -----------------------------
+   End game
+--------------------------------*/
+function endGame(){
+  clearTimer();
+  feedbackEl.innerHTML = `<strong style="font-size:1.05rem">🎉 Game Over! Final Score: ${score} / ${questions.length}</strong>`;
+  nextBtn.style.display = 'none';
+  restartBtn.style.display = 'inline-block';
+  triggerConfetti();
+}
+
+/* -----------------------------
+   Reset
+--------------------------------*/
+function resetGame(){
+  score = 0;
+  currentQuestionIndex = -1;
+  usedQuestions = [];
+  answeredCount = 0;
+  used5050 = usedSkip = usedChance = false;
+  nextBtn.style.display = 'none';
+  restartBtn.style.display = 'none';
+  feedbackEl.textContent = '';
+  updateSidebar();
+  updateLifeStatusText();
+  getRandomQuestion();
+  clearConfetti();
+}
+
+/* -----------------------------
+   Confetti (simple)
+--------------------------------*/
+let confettiPieces = [];
+function resizeCanvas(){
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function spawnConfetti(){
+  confettiPieces = [];
+  const count = 120;
+  for(let i=0;i<count;i++){
+    confettiPieces.push({
+      x: Math.random()*confettiCanvas.width,
+      y: Math.random()*(-confettiCanvas.height),
+      w: 6 + Math.random()*10,
+      h: 8 + Math.random()*8,
+      color: `hsl(${Math.floor(Math.random()*360)},70%,60%)`,
+      rot: Math.random()*360,
+      speed: 2 + Math.random()*5,
+      rotSpeed: (Math.random()-0.5)*7
+    });
+  }
+  requestAnimationFrame(drawConfetti);
+}
+
+let confettiActive = false;
+function drawConfetti(){
+  confettiActive = true;
+  ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+  for(let p of confettiPieces){
+    p.y += p.speed;
+    p.rot += p.rotSpeed;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot * Math.PI / 180);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+    ctx.restore();
+    if(p.y > confettiCanvas.height + 50){
+      p.y = -20;
+      p.x = Math.random()*confettiCanvas.width;
+    }
+  }
+  if(confettiActive) requestAnimationFrame(drawConfetti);
+}
+function triggerConfetti(){
+  spawnConfetti();
+  // stop after 6 seconds
+  setTimeout(()=>{ clearConfetti(); }, 6000);
+}
+function clearConfetti(){
+  confettiActive = false;
+  ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+}
+
+/* -----------------------------
+   Initialization
+--------------------------------*/
+(function init(){
+  // Start first question
+  // To allow audio to play, some browsers require a user gesture (click). Sounds still play after first interaction.
+  getRandomQuestion();
+  updateSidebar();
+})();
+
+/* -----------------------------
+   Accessibility: keyboard navigation (1-4)
+--------------------------------*/
+window.addEventListener('keydown', (e)=>{
+  if(['1','2','3','4'].includes(e.key) && document.querySelectorAll('.opt-btn').length){
+    const idx = Number(e.key)-1;
+    const btn = document.querySelector(`.opt-btn[data-index="${idx}"]`);
+    if(btn && !btn.classList.contains('disabled')) btn.click();
+  }
+});
+</script>
+</body>
+</html>
